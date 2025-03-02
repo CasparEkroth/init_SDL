@@ -1,12 +1,6 @@
 #include "initSDL.h"
 
-void initSDL(SDL_Window *pWindow,SDL_Renderer* pRenderer){
-    pWindow = initialize_window();
-    pRenderer = initialize_renderer(pWindow);
-}
-
-SDL_Window* initialize_window(void){ // Initialiserar SDL och skapar fönster
-    SDL_Window* pWindow;
+int initialize_window(Game *pGame){ // Initialiserar SDL och skapar fönster
     if (SDL_Init(SDL_INIT_EVERYTHING) != 0 || TTF_Init() != 0 || SDL_Init(SDL_INIT_AUDIO) < 0){
         fprintf(stderr, "Error initializing SDL. %s\n", SDL_GetError());
         return false;
@@ -19,7 +13,7 @@ SDL_Window* initialize_window(void){ // Initialiserar SDL och skapar fönster
         fprintf(stderr,"SDL_mixer could not initialize! Mix_Error: %s\n",Mix_GetError());
         return false;
     }
-    pWindow = SDL_CreateWindow(
+    pGame->pWindow = SDL_CreateWindow(
         NULL, // Titel
         SDL_WINDOWPOS_CENTERED, // x
         SDL_WINDOWPOS_CENTERED, // y 
@@ -27,22 +21,17 @@ SDL_Window* initialize_window(void){ // Initialiserar SDL och skapar fönster
         STARTING_WINDOW_HEIGHT, 
         SDL_WINDOW_RESIZABLE  // Flags
     );
-    if (!pWindow) {
+    if (!pGame->pWindow) {
         fprintf(stderr, "Error creating SDL Window: %s\n", SDL_GetError());
-        return NULL;
+        return false;
     }
-    return pWindow;
-}
-
-SDL_Renderer* initialize_renderer(SDL_Window* pWindow){
-    SDL_Renderer* pRenderer; 
     Uint32 render_flags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC;
-    pRenderer = SDL_CreateRenderer(pWindow, -1, render_flags);
-    if (!pRenderer) {
+    pGame->pRenderere = SDL_CreateRenderer(pGame->pWindow, -1, render_flags);
+    if (!pGame->pRenderere) {
         fprintf(stderr, "Error creating SDL Renderer: %s\n", SDL_GetError());
-        return NULL;
+        return false;
     }
-    return pRenderer;
+    return true;
 }
 
 void close_SDL(SDL_Window* pWindow,SDL_Renderer *pRenderer){
@@ -74,6 +63,11 @@ void input(SDL_Event event,Game* pGame){
 
 void render(Game *pGame){
     SDL_RenderClear(pGame->pRenderere);
+    SDL_SetRenderDrawColor(pGame->pRenderere,0,255,0,255);
     SDL_RenderDrawLine(pGame->pRenderere,20,20,80,20);
     SDL_RenderPresent(pGame->pRenderere);
+}
+
+void update(Game *pGame){
+
 }
