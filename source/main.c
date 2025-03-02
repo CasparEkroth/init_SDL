@@ -1,12 +1,14 @@
-#include "initSDL.h"
+#include "toolSDL.h"
 int main(void){
-    SDL_Window* pWindow;
-    SDL_Renderer*pRenderer;
-    initSDL(&pWindow,&pRenderer);
-    while (true){
+    Game *pGame;
+    SDL_Event event;
+    initSDL(pGame->pWindow,pGame->pRenderere);
+    pGame->programIsRunning = true;
+    while (pGame->programIsRunning){
         //run game 
+        input(event,pGame);
     }
-    close_SDL(&pWindow,&pRenderer);
+    close_SDL(pGame->pWindow,pGame->pRenderere);
     return 0;
 }
 
