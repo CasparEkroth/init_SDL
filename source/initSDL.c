@@ -1,6 +1,6 @@
 #include "initSDL.h"
 
-int initialize_window(Game *pGame){ // Initialiserar SDL och skapar fönster
+bool initialize_window(Game *pGame){ // Initialiserar SDL och skapar fönster
     if (SDL_Init(SDL_INIT_EVERYTHING) != 0 || TTF_Init() != 0 || SDL_Init(SDL_INIT_AUDIO) < 0){
         fprintf(stderr, "Error initializing SDL. %s\n", SDL_GetError());
         return false;
@@ -29,6 +29,11 @@ int initialize_window(Game *pGame){ // Initialiserar SDL och skapar fönster
     pGame->pRenderere = SDL_CreateRenderer(pGame->pWindow, -1, render_flags);
     if (!pGame->pRenderere) {
         fprintf(stderr, "Error creating SDL Renderer: %s\n", SDL_GetError());
+        return false;
+    }
+    pGame->font = TTF_OpenFont("jdjd",24);
+    if(!pGame->font){
+        fprintf(stderr,"Error opening Font: %s\n", TTF_GetError());
         return false;
     }
     return true;
