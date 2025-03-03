@@ -31,7 +31,7 @@ bool initialize_window(Game *pGame){ // Initialiserar SDL och skapar fönster
         fprintf(stderr, "Error creating SDL Renderer: %s\n", SDL_GetError());
         return false;
     }
-    pGame->font = TTF_OpenFont("jdjd",24);
+    pGame->font = TTF_OpenFont("resources/Academy Engraved LET Fonts.ttf",24);
     if(!pGame->font){
         fprintf(stderr,"Error opening Font: %s\n", TTF_GetError());
         return false;
@@ -39,7 +39,8 @@ bool initialize_window(Game *pGame){ // Initialiserar SDL och skapar fönster
     return true;
 }
 
-void close_SDL(SDL_Window* pWindow,SDL_Renderer *pRenderer){
+void close_SDL(SDL_Window* pWindow,SDL_Renderer *pRenderer, Game *pGame){
+    if(pGame->font) TTF_CloseFont(pGame->font);
     if (pRenderer) SDL_DestroyRenderer(pRenderer);
     if (pWindow) SDL_DestroyWindow(pWindow);
     Mix_CloseAudio();
@@ -68,8 +69,7 @@ void input(SDL_Event event,Game* pGame){
 
 void render(Game *pGame){
     SDL_RenderClear(pGame->pRenderere);
-    SDL_SetRenderDrawColor(pGame->pRenderere,0,255,0,255);
-    SDL_RenderDrawLine(pGame->pRenderere,20,20,80,20);
+    SDL_RenderCopy(pGame->pRenderere,pGame->helloworld,NULL,&pGame->hello);
     SDL_RenderPresent(pGame->pRenderere);
 }
 

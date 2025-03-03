@@ -20,6 +20,7 @@ typedef struct{
     SDL_Point mouse_pos;
     bool programIsRunning;
     SDL_Texture *helloworld;
+    SDL_Rect hello;
     TTF_Font *font;
 }Game;
 
@@ -31,7 +32,7 @@ void input(SDL_Event event,Game* pGame);
 void render(Game *pGame);
 void update(Game *pGame);
 
-void close_SDL(SDL_Window* pWindow,SDL_Renderer *pRenderer);
+void close_SDL(SDL_Window* pWindow,SDL_Renderer *pRenderer, Game *pGame);
 
 
 #endif
