@@ -13,6 +13,10 @@ void trimWhitespace(char *str);
 SDL_Texture* makeStringInToSDL_Texture(char string[NAME], TTF_Font *pFont,SDL_Renderer* pRendererer);
 SDL_Rect setingSizeOfStringToRect(char string[NAME],SDL_Point startingPoint,int h,int w);
 
+bool inDiamond(SDL_Rect isoRect, SDL_Point mouse); // ISO
+void RBG(SDL_Surface *surface, int x, int y);
+Uint32 getPixel(SDL_Surface *surface, int x, int y);
+
 
 
 
