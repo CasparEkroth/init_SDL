@@ -2,7 +2,7 @@
 
 void helloWorld(char str[NAME],Game *pGame);
 
-int main(void){
+int main(int argc, char **argv){
     Game g = {0};
     SDL_Event event;
     if(initialize_window(&g)){
