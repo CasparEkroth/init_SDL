@@ -3,8 +3,10 @@
 void helloWorld(char str[NAME],Game *pGame);
 
 int main(int argc, char **argv){
+    (void)argc;
+    (void)argv;
     Game g = {0};
-    SDL_Event event;
+    SDL_Event event = {0};
     if(initialize_window(&g)){
     g.programIsRunning = true;
     }else g.programIsRunning = false;
