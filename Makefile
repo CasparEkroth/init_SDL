@@ -1,54 +1,72 @@
-# Variables for compiler and flags
-CC=clang
-CFLAGS=-fsanitize=address -g -c -I/opt/homebrew/include/SDL2 -I/opt/homebrew/include/SDL2_image -I/opt/homebrew/include/SDL2_ttf -I/opt/homebrew/include/SDL2_mixer -I/opt/homebrew/include/SDL2_net
-LDFLAGS=-fsanitize=address -I/opt/homebrew/include/SDL2 -L/opt/homebrew/lib -lSDL2main -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_mixer -lSDL2_net
+# Makefile-exempel: bygger server/client med SDL2-stöd
 
-# File names
-OBJ=main.o initSDL.o toolSDL.o server.o client.o #map.o player.o game.o menu.o map_maker.o #enemy.o
-EXEC=GameSDL
+# ==== OS-detektering ====
+OS := $(shell uname -s 2>/dev/null)
+ifeq ($(OS),)
+    OS := Windows_NT
+endif
 
-# Linking
-$(EXEC): $(OBJ)
-	$(CC) $(OBJ) -o $(EXEC) $(LDFLAGS)
+ifeq ($(OS), Darwin)
+# --- macOS Settings ---
+    CC = clang
+    CFLAGS = -fsanitize=address -fsanitize=undefined -g -Wall -Wextra \
+             -I/opt/homebrew/include/SDL2 \
+             -I/opt/homebrew/include/SDL2_image \
+             -I/opt/homebrew/include/SDL2_ttf \
+             -I/opt/homebrew/include/SDL2_mixer \
+             -I/opt/homebrew/include/SDL2_net
+    LDFLAGS = -fsanitize=address \
+              -L/opt/homebrew/lib \
+              -lSDL2main -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_mixer -lSDL2_net
+    REMOV = rm -f
+else ifeq ($(OS), Windows_NT)
+# --- Windows (MinGW/MSYS) Settings ---
+    CC = gcc
+    INCLUDE = C:/msys64/mingw64/include/SDL2
+    CFLAGS = -g -Wall -Wextra -I$(INCLUDE)
+    LDFLAGS = -lmingw32 -lSDL2main -lSDL2 -lSDL2_image -lSDL2_ttf \
+              -lSDL2_mixer -lSDL2_net -mwindows
+    REMOV = del /f
+endif
 
-# Compile source code
-main.o: source/main.c
-	$(CC) $(CFLAGS) source/main.c -o main.o
+# ==== Vanliga variabler ====
+SERVER_TARGET = server
+CLIENT_TARGET = client
 
-initSDL.o: source/initSDL.c
-	$(CC) $(CFLAGS) source/initSDL.c -o initSDL.o
+SRCDIR = source
+NETDIR = source/network
 
-toolSDL.o: source/toolSDL.c
-	$(CC) $(CFLAGS) source/toolSDL.c -o toolSDL.o
+all: $(SERVER_TARGET) $(CLIENT_TARGET)
 
-server.o: source/network/server.c
-	$(CC) $(CFLAGS) source/server.c -o server.o
+$(SERVER_TARGET): $(NETDIR)/server.c
+	$(CC) $(CFLAGS) $(NETDIR)/server.c -o $(SERVER_TARGET) $(LDFLAGS)
 
-client.o: source/network/client.c
-	$(CC) $(CFLAGS) source/client.c -o client.o
+$(CLIENT_TARGET): $(NETDIR)/client.c
+	$(CC) $(CFLAGS) $(NETDIR)/client.c -o $(CLIENT_TARGET) $(LDFLAGS)
 
-#map.o: source/map.c
-#	$(CC) $(CFLAGS) source/map.c -o map.o
-
-#player.o: source/player.c
-#	$(CC) $(CFLAGS) source/player.c -o player.o
-
-#menu.o: source/menu.c
-#	$(CC) $(CFLAGS) source/menu.c -o menu.o
-
-#enemy.o: source/enemy.c
-#	$(CC) $(CFLAGS) source/enemy.c -o enemy.o
-
-#map_maker.o: source/map_maker.c
-#	$(CC) $(CFLAGS) source/map_maker.c -o map_maker.o
-
-#game.o: source/game.c
-#	$(CC) $(CFLAGS) source/game.c -o game.o
-
-# Clean binaries
 clean:
-	rm -f *.o $(EXEC)
+	$(REMOV) *.o $(SERVER_TARGET) $(CLIENT_TARGET)
 
-# Run the program
-run: $(EXEC)
-	./$(EXEC)
+run_server:
+	./$(SERVER_TARGET)
+
+run_client:
+	./$(CLIENT_TARGET)
+
+run_clients:
+	./$(CLIENT_TARGET) & ./$(CLIENT_TARGET)
+
+# main.o: $(SRCDIR)/main.c
+# 	$(CC) $(CFLAGS) $(SRCDIR)/main.c -o main.o 
+
+# initSDL.o: $(SRCDIR)/initSDL.c
+# 	$(CC) $(CFLAGS) $(SRCDIR)/initSDL.c -o initSDL.o
+
+# toolSDL.o: $(SRCDIR)/toolSDL.c
+# 	$(CC) $(CFLAGS) $(SRCDIR)/toolSDL.c -o toolSDL.o
+
+# server.o: source/network/server.c
+# 	$(CC) $(CFLAGS) source/server.c -o server.o
+
+# client.o: source/network/client.c
+# 	$(CC) $(CFLAGS) source/client.c -o client.o
