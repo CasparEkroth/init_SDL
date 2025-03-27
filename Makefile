@@ -19,6 +19,10 @@ ifeq ($(OS), Darwin)
               -L/opt/homebrew/lib \
               -lSDL2main -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_mixer -lSDL2_net
     REMOV = rm -f
+    SERVER_TARGET = server
+    CLIENT_TARGET = client
+    RUN = ./
+    AND = &
 else ifeq ($(OS), Windows_NT)
 # --- Windows (MinGW/MSYS) Settings ---
     CC = gcc
@@ -27,11 +31,13 @@ else ifeq ($(OS), Windows_NT)
     LDFLAGS = -lmingw32 -lSDL2main -lSDL2 -lSDL2_image -lSDL2_ttf \
               -lSDL2_mixer -lSDL2_net -mwindows
     REMOV = del /f
+    SERVER_TARGET =server.exe
+    CLIENT_TARGET =client.exe
+    RUN = ./
+    AND = ;
 endif
 
 # ==== Vanliga variabler ====
-SERVER_TARGET = server
-CLIENT_TARGET = client
 
 SRCDIR = source
 NETDIR = source/network
@@ -48,14 +54,19 @@ clean:
 	$(REMOV) *.o $(SERVER_TARGET) $(CLIENT_TARGET)
 
 run_server:
-	./$(SERVER_TARGET)
+	$(RUN)$(SERVER_TARGET)
 
 run_client:
-	./$(CLIENT_TARGET)
+	$(RUN)$(CLIENT_TARGET)
 
+ifeq ($(OS), Windows_NT)
+run_clients:
+	powershell -Command "Start-Process .\$(CLIENT_TARGET)"
+	powershell -Command "Start-Process .\$(CLIENT_TARGET)"
+else
 run_clients:
 	./$(CLIENT_TARGET) & ./$(CLIENT_TARGET)
-
+endif
 # main.o: $(SRCDIR)/main.c
 # 	$(CC) $(CFLAGS) $(SRCDIR)/main.c -o main.o 
 
