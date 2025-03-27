@@ -1,76 +1,72 @@
+# Makefile-exempel: bygger server/client med SDL2-stöd
 
-OBJ = main.o initSDL.o toolSDL.o  #ex på filer som behöver compilera 
-# Hämta OS-namnet via uname. 
-# Om uname inte finns (t.ex. ren Windows utan MSYS), sätt OS till Windows_NT.
+# ==== OS-detektering ====
 OS := $(shell uname -s 2>/dev/null)
 ifeq ($(OS),)
-  OS := Windows_NT
+    OS := Windows_NT
 endif
 
 ifeq ($(OS), Darwin)
-    # --- macOS Settings ---
-    # Variables for compiler and flags
+# --- macOS Settings ---
     CC = clang
-    CFLAGS = -fsanitize=address -fsanitize=undefined -g -c -Wall -Wextra\
+    CFLAGS = -fsanitize=address -fsanitize=undefined -g -Wall -Wextra \
              -I/opt/homebrew/include/SDL2 \
              -I/opt/homebrew/include/SDL2_image \
              -I/opt/homebrew/include/SDL2_ttf \
              -I/opt/homebrew/include/SDL2_mixer \
              -I/opt/homebrew/include/SDL2_net
     LDFLAGS = -fsanitize=address \
-              -I/opt/homebrew/include/SDL2 \
               -L/opt/homebrew/lib \
-              -lSDL2main -lSDL2 -lSDL2_image -lSDL2_ttf \
-              -lSDL2_mixer -lSDL2_net
-
-    # File names
-#Saman satta fil namnet
-    EXEC = HelloWorld 
-#sök väg för source filse från relevent path
-	SRCDIR = source
-#remove comand
-	REMOV = rm -f *.o 
-# exequte operator
-	PREFORM =./
-
+              -lSDL2main -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_mixer -lSDL2_net
+    REMOV = rm -f
 else ifeq ($(OS), Windows_NT)
-    # --- Windows (MinGW/MSYS) Settings ---
-    # Adjust these paths for your environment:
+# --- Windows (MinGW/MSYS) Settings ---
     CC = gcc
-    # If your SDL2 is in C:/SDL2, for example:
-    ####################  LADE TILL: \SDL2      !!
-    INCLUDE=C:\msys64\mingw64\include\SDL2
-	CFLAGS=-g -c -I$(INCLUDE)
-    #################################### # LADE TILL: -lSDL2_ttf -lSDL2_mixer -lSDL2_net        !!
-	LDFLAGS= -lmingw32 -lSDL2main -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_mixer -lSDL2_net -mwindows 
-    EXEC = HelloWorld.exe
-	SRCDIR = ./source
-	REMOV = del /f *.o
-	PREFORM = ./
-
+    INCLUDE = C:/msys64/mingw64/include/SDL2
+    CFLAGS = -g -Wall -Wextra -I$(INCLUDE)
+    LDFLAGS = -lmingw32 -lSDL2main -lSDL2 -lSDL2_image -lSDL2_ttf \
+              -lSDL2_mixer -lSDL2_net -mwindows
+    REMOV = del /f
 endif
 
- # Linking
-$(EXEC): $(OBJ)
-	$(CC) $(OBJ) -o $(EXEC) $(LDFLAGS)
+# ==== Vanliga variabler ====
+SERVER_TARGET = server
+CLIENT_TARGET = client
 
-# Compile source code
-#behövs för alla filer som ska compilera
-main.o: $(SRCDIR)/main.c
-	$(CC) $(CFLAGS) $(SRCDIR)/main.c -o main.o 
+SRCDIR = source
+NETDIR = source/network
 
-initSDL.o: $(SRCDIR)/initSDL.c
-	$(CC) $(CFLAGS) $(SRCDIR)/initSDL.c -o initSDL.o
+all: $(SERVER_TARGET) $(CLIENT_TARGET)
 
-toolSDL.o: $(SRCDIR)/toolSDL.c
-	$(CC) $(CFLAGS) $(SRCDIR)/toolSDL.c -o toolSDL.o
+$(SERVER_TARGET): $(NETDIR)/server.c
+	$(CC) $(CFLAGS) $(NETDIR)/server.c -o $(SERVER_TARGET) $(LDFLAGS)
 
-# Clean binaries
-clean: 
-	$(REMOV) $(EXEC)
+$(CLIENT_TARGET): $(NETDIR)/client.c
+	$(CC) $(CFLAGS) $(NETDIR)/client.c -o $(CLIENT_TARGET) $(LDFLAGS)
 
-# Run the program
-run:  
-	$(PREFORM)$(EXEC)
+clean:
+	$(REMOV) *.o $(SERVER_TARGET) $(CLIENT_TARGET)
 
+run_server:
+	./$(SERVER_TARGET)
 
+run_client:
+	./$(CLIENT_TARGET)
+
+run_clients:
+	./$(CLIENT_TARGET) & ./$(CLIENT_TARGET)
+
+# main.o: $(SRCDIR)/main.c
+# 	$(CC) $(CFLAGS) $(SRCDIR)/main.c -o main.o 
+
+# initSDL.o: $(SRCDIR)/initSDL.c
+# 	$(CC) $(CFLAGS) $(SRCDIR)/initSDL.c -o initSDL.o
+
+# toolSDL.o: $(SRCDIR)/toolSDL.c
+# 	$(CC) $(CFLAGS) $(SRCDIR)/toolSDL.c -o toolSDL.o
+
+# server.o: source/network/server.c
+# 	$(CC) $(CFLAGS) source/server.c -o server.o
+
+# client.o: source/network/client.c
+# 	$(CC) $(CFLAGS) source/client.c -o client.o
