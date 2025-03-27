@@ -7,7 +7,7 @@
 #include <SDL_net.h>
 
 #include "shared.h"
-
+#define SERVER_IP "10.0.0.8"
 static UDPsocket udpSocket = NULL;
 static UDPpacket *outPacket = NULL;
 static UDPpacket *inPacket = NULL;
@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
 
     // Resolve the server address (change IP if needed)
     IPaddress serverAddr;
-    if (SDLNet_ResolveHost(&serverAddr, "127.0.0.1", PORT) < 0) {
+    if (SDLNet_ResolveHost(&serverAddr,SERVER_IP, PORT) < 0) {
         printf("SDLNet_ResolveHost failed: %s\n", SDLNet_GetError());
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
