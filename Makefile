@@ -22,7 +22,6 @@ ifeq ($(OS), Darwin)
     SERVER_TARGET = server
     CLIENT_TARGET = client
     RUN = ./
-    AND = &
 else ifeq ($(OS), Windows_NT)
 # --- Windows (MinGW/MSYS) Settings ---
     CC = gcc
@@ -34,7 +33,6 @@ else ifeq ($(OS), Windows_NT)
     SERVER_TARGET =server.exe
     CLIENT_TARGET =client.exe
     RUN = ./
-    AND = ;
 endif
 
 # ==== Vanliga variabler ====
