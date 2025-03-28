@@ -18,78 +18,18 @@ static PlayerState players[MAX_PLAYERS];
 static IPaddress clients[MAX_PLAYERS];
 static int connectedPlayers = 0;
 
-// Helper: find which player ID corresponds to an IP/port
-// Return -1 if not found
-int findClient(IPaddress addr) {
-    for (int i = 0; i < connectedPlayers; i++) {
-        if (clients[i].host == addr.host && clients[i].port == addr.port) {
-            return i;
-        }
-    }
-    return -1;
-}
+void broadcastPlayers(UDPsocket sock, UDPpacket *packet);
+void removeClient(int index, IPaddress addr);
+int findClient(IPaddress addr);
 
-// Remove client by index
-void removeClient(int index) {
-    printf("Removing client at index %d\n", index);
-    // Shift everything down from the end
-    for (int i = index; i < connectedPlayers - 1; i++) {
-        clients[i] = clients[i + 1];
-        players[i] = players[i + 1]; // Also shift position
-    }
-    connectedPlayers--;
-}
+bool initForServer();
 
-// Broadcast all players' positions to each client
-void broadcastPlayers(UDPsocket sock, UDPpacket *packet) {
-    // We’ll send the entire players[] array in one go
-    // or we can send multiple messages, but let's do one shot.
-    // We'll just do: 2 * int for each player: x, y
-    // But let's do it very simply with a second buffer or struct.
 
-    // We'll create a temporary buffer: each player is 2 ints => 8 bytes
-    // With MAX_PLAYERS players, that's 8 * MAX_PLAYERS = 32 for 4 players,
-    // but let's be safe and assume 8 * 16 or just 128.
-    // For clarity, let's do a small known limit.
-    char buffer[512];
-    int offset = 0;
-
-    // Copy connectedPlayers (so client knows how many are valid)
-    memcpy(buffer + offset, &connectedPlayers, sizeof(int));
-    offset += sizeof(int);
-
-    // Now copy positions for each player slot in the first connectedPlayers
-    for (int i = 0; i < connectedPlayers; i++) {
-        memcpy(buffer + offset, &players[i].x, sizeof(int));
-        offset += sizeof(int);
-        memcpy(buffer + offset, &players[i].y, sizeof(int));
-        offset += sizeof(int);
-    }
-
-    // Put this in the outgoing packet
-    memcpy(packet->data, buffer, offset);
-    packet->len = offset;
-
-    // Send to each connected client
-    for (int i = 0; i < connectedPlayers; i++) {
-        packet->address = clients[i];
-        SDLNet_UDP_Send(sock, -1, packet);
-    }
-}
-
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[]){
     (void)argc; (void)argv; // Silence unused warnings if you like
-
-    if (SDL_Init(0) < 0) {
-        printf("SDL_Init failed: %s\n", SDL_GetError());
+    if(!initForServer()){
         return 1;
     }
-    if (SDLNet_Init() < 0) {
-        printf("SDLNet_Init failed: %s\n", SDLNet_GetError());
-        SDL_Quit();
-        return 1;
-    }
-
     // Open server UDP socket
     UDPsocket serverSocket = SDLNet_UDP_Open(PORT);
     if (!serverSocket) {
@@ -98,7 +38,6 @@ int main(int argc, char *argv[]) {
         SDL_Quit();
         return 1;
     }
-
     // Packets for sending/receiving
     UDPpacket *recvPacket = SDLNet_AllocPacket(512);
     UDPpacket *sendPacket = SDLNet_AllocPacket(512);
@@ -155,7 +94,7 @@ int main(int argc, char *argv[]) {
                     else if (pkg.messageType == MSG_DISCONNECT) {
                         // This client is disconnecting
                         printf("Player %d disconnected.\n", playerIndex);
-                        removeClient(playerIndex);
+                        removeClient(playerIndex,clients[playerIndex]);
 
                         if (connectedPlayers == 0) {
                             printf("All clients disconnected. Shutting down server.\n");
@@ -187,4 +126,76 @@ int main(int argc, char *argv[]) {
     SDLNet_Quit();
     SDL_Quit();
     return 0;
+}
+
+bool initForServer(){
+    if (SDL_Init(0) < 0) {
+        printf("SDL_Init failed: %s\n", SDL_GetError());
+        return false;
+    }
+    if (SDLNet_Init() < 0) {
+        printf("SDLNet_Init failed: %s\n", SDLNet_GetError());
+        SDL_Quit();
+        return false;
+    }
+    return true;
+}
+
+// Helper: find which player ID corresponds to an IP/port
+// Return -1 if not found
+int findClient(IPaddress addr){
+    for (int i = 0; i < connectedPlayers; i++) {
+        if (clients[i].host == addr.host && clients[i].port == addr.port) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+// Remove client by index
+void removeClient(int index, IPaddress addr){
+    printf("Removing client at index %d\nIP: %d\n", index,(int)addr.host);
+    // Shift everything down from the end
+    for (int i = index; i < connectedPlayers - 1; i++) {
+        clients[i] = clients[i + 1];
+        players[i] = players[i + 1]; // Also shift position
+    }
+    connectedPlayers--;
+}
+
+// Broadcast all players' positions to each client
+void broadcastPlayers(UDPsocket sock, UDPpacket *packet){
+    // We’ll send the entire players[] array in one go
+    // or we can send multiple messages, but let's do one shot.
+    // We'll just do: 2 * int for each player: x, y
+    // But let's do it very simply with a second buffer or struct.
+
+    // We'll create a temporary buffer: each player is 2 ints => 8 bytes
+    // With MAX_PLAYERS players, that's 8 * MAX_PLAYERS = 32 for 4 players,
+    // but let's be safe and assume 8 * 16 or just 128.
+    // For clarity, let's do a small known limit.
+    char buffer[512];
+    int offset = 0;
+
+    // Copy connectedPlayers (so client knows how many are valid)
+    memcpy(buffer + offset, &connectedPlayers, sizeof(int));
+    offset += sizeof(int);
+
+    // Now copy positions for each player slot in the first connectedPlayers
+    for (int i = 0; i < connectedPlayers; i++) {
+        memcpy(buffer + offset, &players[i].x, sizeof(int));
+        offset += sizeof(int);
+        memcpy(buffer + offset, &players[i].y, sizeof(int));
+        offset += sizeof(int);
+    }
+
+    // Put this in the outgoing packet
+    memcpy(packet->data, buffer, offset);
+    packet->len = offset;
+
+    // Send to each connected client
+    for (int i = 0; i < connectedPlayers; i++) {
+        packet->address = clients[i];
+        SDLNet_UDP_Send(sock, -1, packet);
+    }
 }

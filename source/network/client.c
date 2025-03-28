@@ -7,7 +7,17 @@
 #include <SDL_net.h>
 
 #include "shared.h"
-#define SERVER_IP "10.0.0.8"
+#define SERVER_IP "127.0.0.1"
+#define SERVER_BRODCAST "255.255.255.255"
+#define SERVER_IP_EDURUM "130.229.140.39"
+// om du vill köra endbart på din enhet använd
+// "127.0.0.1" - kör med dig själv
+// "255.255.255.255" ksk brodcast
+// tanken är att bordcasta efter en server om en server finns 
+// kommer den att svara och clienten kommer att gå med i LANet
+// om de inte finns en server kommer client programet köra 
+// kommandot system("make run_server"); och alltså börja hosta 
+// från sin egna dator 
 static UDPsocket udpSocket = NULL;
 static UDPpacket *outPacket = NULL;
 static UDPpacket *inPacket = NULL;
@@ -48,7 +58,7 @@ int main(int argc, char *argv[]) {
 
     // Resolve the server address (change IP if needed)
     IPaddress serverAddr;
-    if (SDLNet_ResolveHost(&serverAddr,SERVER_IP, PORT) < 0) {
+    if (SDLNet_ResolveHost(&serverAddr,SERVER_IP_EDURUM, PORT) < 0) {
         printf("SDLNet_ResolveHost failed: %s\n", SDLNet_GetError());
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
@@ -85,39 +95,36 @@ int main(int argc, char *argv[]) {
 
     // We'll store up to MAX_PLAYERS positions
     int numPlayers = 0; 
-    int playerPosX[MAX_PLAYERS];
-    int playerPosY[MAX_PLAYERS];
-    for (int i = 0; i < MAX_PLAYERS; i++) {
-        playerPosX[i] = 0;
-        playerPosY[i] = 0;
-    }
+    int playerPosX[MAX_PLAYERS]={0};
+    int playerPosY[MAX_PLAYERS]={0};
+
     bool keys[SDL_NUM_SCANCODES] ={0};
     bool running = true;
     while (running) {
         // Handle input
         SDL_Event event;
         int dx = 0, dy = 0;
-    while (SDL_PollEvent(&event)){
-        switch (event.type){
-        case SDL_QUIT:
-            running = false;
-            break;
-        case SDL_MOUSEBUTTONDOWN:
-            keys[event.button.button] = SDL_PRESSED;
-            break;
-        case SDL_MOUSEBUTTONUP:
-            keys[event.button.button] = SDL_RELEASED;
-            break;
-        case SDL_KEYDOWN:
-            keys[event.key.keysym.scancode]  = true;
-            break;
-        case SDL_KEYUP:
-            keys[event.key.keysym.scancode]  = false;
-            break;
-        default:
-            break;
+        while (SDL_PollEvent(&event)){
+            switch (event.type){
+            case SDL_QUIT:
+                running = false;
+                break;
+            case SDL_MOUSEBUTTONDOWN:
+                keys[event.button.button] = SDL_PRESSED;
+                break;
+            case SDL_MOUSEBUTTONUP:
+                keys[event.button.button] = SDL_RELEASED;
+                break;
+            case SDL_KEYDOWN:
+                keys[event.key.keysym.scancode]  = true;
+                break;
+            case SDL_KEYUP:
+                keys[event.key.keysym.scancode]  = false;
+                break;
+            default:
+                break;
+            }
         }
-    }
         if(keys[SDL_SCANCODE_UP]) dy = -5;
         if(keys[SDL_SCANCODE_DOWN]) dy = 5;
         if(keys[SDL_SCANCODE_LEFT]) dx = -5;
