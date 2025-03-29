@@ -51,18 +51,24 @@ int main(int argc, char *argv[]) {
         closeSDLElement(renderer,window);
         return 1;
     }
-    // Resolve the server address (change IP if needed)
     Client theClient;
     theClient = initNet();
     if(theClient == NULL){
         closeSDLElement(renderer,window);
-    }
+    }  // Resolve the server address (change IP if needed)
     if (SDLNet_ResolveHost(&theClient->serverAddr,SERVER_IP, PORT) < 0) {
         printf("SDLNet_ResolveHost failed: %s\n", SDLNet_GetError());
         closeSDLElement(renderer,window);
         return 1;
     }
-    // We'll store up to MAX_PLAYERS positions
+    /*if(!broadcastServer(theClient)){
+        if (SDLNet_ResolveHost(&theClient->serverAddr,SERVER_IP, PORT) < 0) {
+            printf("SDLNet_ResolveHost failed: %s\n", SDLNet_GetError());
+            closeSDLElement(renderer,window);
+            return 1;
+        }
+    }*/
+
     int numPlayers = 0; 
     int playerPosX[MAX_PLAYERS]={0};
     int playerPosY[MAX_PLAYERS]={0};
@@ -70,7 +76,6 @@ int main(int argc, char *argv[]) {
     bool keys[SDL_NUM_SCANCODES] ={0};
     bool running = true;
     while (running) {
-        // Handle input
         SDL_Event event;
         int dx = 0, dy = 0;
         while (SDL_PollEvent(&event)){
@@ -98,9 +103,7 @@ int main(int argc, char *argv[]) {
         if(keys[SDL_SCANCODE_DOWN]) dy = 5;
         if(keys[SDL_SCANCODE_LEFT]) dx = -5;
         if(keys[SDL_SCANCODE_RIGHT]) dx = 5;
-        // dy(-up/ner), dx(-left/rhift) 
-        // If there was a movement, send it
-        if (dx != 0 || dy != 0) {
+        if (dx != 0 || dy != 0) { // If there was a movement, send it
             SEND(theClient,MSG_MOVE,0,dx,dy,100);
         }
         // Receive updated positions from server
@@ -130,7 +133,6 @@ int main(int argc, char *argv[]) {
         // Render
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
-
         // Draw each player
         for (int i = 0; i < numPlayers; i++) {
             // Just alternate color for fun
@@ -142,15 +144,11 @@ int main(int argc, char *argv[]) {
             SDL_Rect rect = { playerPosX[i], playerPosY[i], RECT_SIZE, RECT_SIZE };
             SDL_RenderFillRect(renderer, &rect);
         }
-
         SDL_RenderPresent(renderer);
         SDL_Delay(16);
     }
-
     // If we’re disconnecting, let server know
-    {
-        SEND(theClient,MSG_DISCONNECT,0,0,0,0);
-    }
+    SEND(theClient,MSG_DISCONNECT,0,0,0,0);
     // Cleanup
     SDLNet_FreePacket(theClient->out_packet);
     SDLNet_FreePacket(theClient->in_packet);
@@ -159,6 +157,44 @@ int main(int argc, char *argv[]) {
     closeSDLElement(renderer,window);
     return 0;
 }
+
+bool broadcastServer(Client aClient){
+    IPaddress broadcastAddr;
+    if (SDLNet_ResolveHost(&broadcastAddr,SERVER_BRODCAST,PORT) < 0) {
+        printf("SDLNet_ResolveHost failed: %s\n", SDLNet_GetError());
+        return false;
+    }
+    PacketData discoverPkg;
+    discoverPkg.messageType = MSG_DISCOVER;
+    discoverPkg.playerID = 0;
+
+    memcpy(aClient->out_packet, &discoverPkg, sizeof(discoverPkg));
+    aClient->out_packet->len = sizeof(PacketData);
+    aClient->out_packet->address = broadcastAddr;
+
+    SDLNet_UDP_Send(aClient->udp_socket,-1,aClient->out_packet);
+    // wait for respons
+    Uint32 startTime = SDL_GetTicks();
+    bool serverFound = false;
+    while (SDL_GetTicks() - startTime < 3000 ){//3 sec
+        if(SDLNet_UDP_Recv(aClient->udp_socket,aClient->in_packet)){
+            PacketData response;
+            memcpy(&response, aClient->in_packet, sizeof(PacketData));
+            if(response.messageType == MSG_DISCOVER_RESPONSE){
+                serverFound = true;
+                break;
+            }
+        }
+        SDL_Delay(10);
+    }
+    if(!serverFound){
+        system("make run_server");
+        printf("NO Server fund\n");
+        return false;
+    }
+    return true;
+}
+
 
 void SEND(Client aClient,MessageType msg,int id,int one,int two,int three){
         PacketData pkg;
@@ -194,7 +230,6 @@ Client initNet(){
     }
     return aClient;
 }
-
 
 int initSDL(SDL_Window **pWindow, SDL_Renderer **pRenderer) {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {

@@ -22,6 +22,7 @@ ifeq ($(OS), Darwin)
     SERVER_TARGET = server
     CLIENT_TARGET = client
     RUN = ./
+    PREFORM = MallocNanoZone=0 
 else ifeq ($(OS), Windows_NT)
 # --- Windows (MinGW/MSYS) Settings ---
     CC = gcc
@@ -33,6 +34,7 @@ else ifeq ($(OS), Windows_NT)
     SERVER_TARGET =server.exe
     CLIENT_TARGET =client.exe
     RUN = ./
+    PREFORM = 
 endif
 
 # ==== Vanliga variabler ====
@@ -55,7 +57,7 @@ run_server:
 	$(RUN)$(SERVER_TARGET)
 
 run_client:
-	$(RUN)$(CLIENT_TARGET)
+	$(PREFORM) $(RUN)$(CLIENT_TARGET)
 
 ifeq ($(OS), Windows_NT)
 run_clients:
@@ -63,7 +65,7 @@ run_clients:
 	powershell -Command "Start-Process .\$(CLIENT_TARGET)"
 else
 run_clients:
-	./$(CLIENT_TARGET) & ./$(CLIENT_TARGET)
+	$(PREFORM) ./$(CLIENT_TARGET) & $(PREFORM) ./$(CLIENT_TARGET)
 endif
 # main.o: $(SRCDIR)/main.c
 # 	$(CC) $(CFLAGS) $(SRCDIR)/main.c -o main.o 

@@ -17,7 +17,7 @@ typedef enum {
     MSG_KEEPALIVE = 1,  // not used in this demo, but an example
     MSG_DISCONNECT = 2,  // client signals it is disconnecting
     MSG_DISCOVER = 3,
-    MSG_DISCOVER_RESPONSe = 4
+    MSG_DISCOVER_RESPONSE = 4
 } MessageType;
 
 typedef struct {
@@ -38,8 +38,8 @@ int initSDL(SDL_Window **pWindow,SDL_Renderer **pRenderer);
 void closeSDLElement(SDL_Renderer *pRen,SDL_Window *pWin);
 
 Client initNet();   //constructer of client struct
-
 // simplefide send funtion
 void SEND(Client aClient,MessageType msg,int id,int one,int two,int three);
+bool broadcastServer(Client aClient);
 
 #endif

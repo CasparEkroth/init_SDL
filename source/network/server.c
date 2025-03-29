@@ -14,67 +14,61 @@ typedef struct {
     int y;
 } PlayerState;
 
-static PlayerState players[MAX_PLAYERS];
-static IPaddress clients[MAX_PLAYERS];
-static int connectedPlayers = 0;
+struct server{
+    PlayerState players[MAX_PLAYERS];
+    IPaddress clients[MAX_PLAYERS];
+    int connectedPlayers;
+    UDPsocket serverSocket;
+    UDPpacket *recvPacket;
+    UDPpacket *sendPacket;
+};
 
-void broadcastPlayers(UDPsocket sock, UDPpacket *packet);
-void removeClient(int index, IPaddress addr);
-int findClient(IPaddress addr);
+//static PlayerState players[MAX_PLAYERS];
+//static IPaddress clients[MAX_PLAYERS];
+//static int connectedPlayers = 0;
+
+void broadcastPlayers(UDPsocket sock, UDPpacket *packet,Server aServer);
+void removeClient(int index, IPaddress addr, Server aServer);
+int findClient(IPaddress addr, Server aServer);
+
 
 bool initForServer();
 
+Server serverConstructer();
 
 int main(int argc, char *argv[]){
     (void)argc; (void)argv; // Silence unused warnings if you like
     if(!initForServer()){
         return 1;
     }
-    // Open server UDP socket
-    UDPsocket serverSocket = SDLNet_UDP_Open(PORT);
-    if (!serverSocket) {
-        printf("Failed to open UDP socket on port %d\n", PORT);
+    Server aServer;
+    aServer = serverConstructer();
+    if(aServer == NULL){
+        if(aServer->serverSocket) SDLNet_UDP_Close(aServer->serverSocket);
         SDLNet_Quit();
         SDL_Quit();
         return 1;
-    }
-    // Packets for sending/receiving
-    UDPpacket *recvPacket = SDLNet_AllocPacket(512);
-    UDPpacket *sendPacket = SDLNet_AllocPacket(512);
-    if (!recvPacket || !sendPacket) {
-        printf("Failed to allocate packets\n");
-        SDLNet_UDP_Close(serverSocket);
-        SDLNet_Quit();
-        SDL_Quit();
-        return 1;
-    }
-
-    // Initialize player positions
-    for (int i = 0; i < MAX_PLAYERS; i++) {
-        players[i].x = 100 + i * 50;
-        players[i].y = 100 + i * 50;
-    }
-
-    printf("UDP server started on port %d\n", PORT);
+    
+    }else printf("UDP server started on port %d\n", PORT);
 
     bool running = true;
     while (running) {
         // Check for packets
-        while (SDLNet_UDP_Recv(serverSocket, recvPacket)) {
+        while (SDLNet_UDP_Recv(aServer->serverSocket, aServer->recvPacket)) {
             // We expect a PacketData or a smaller/larger message
-            if (recvPacket->len == sizeof(PacketData)) {
+            if (aServer->recvPacket->len == sizeof(PacketData)) {
                 PacketData pkg;
-                memcpy(&pkg, recvPacket->data, sizeof(PacketData));
+                memcpy(&pkg, aServer->recvPacket->data, sizeof(PacketData));
 
                 // Find or add the sender
-                IPaddress sender = recvPacket->address;
-                int playerIndex = findClient(sender);
+                IPaddress sender = aServer->recvPacket->address;
+                int playerIndex = findClient(sender,aServer);
 
                 // If unknown, add if we have capacity
-                if (playerIndex == -1 && connectedPlayers < MAX_PLAYERS) {
-                    playerIndex = connectedPlayers;
-                    clients[playerIndex] = sender;
-                    connectedPlayers++;
+                if (playerIndex == -1 && aServer->connectedPlayers < MAX_PLAYERS) {
+                    playerIndex = aServer->connectedPlayers;
+                    aServer->clients[playerIndex] = sender;
+                    aServer->connectedPlayers++;
                     printf("New client added as player %d\n", playerIndex);
                 }
 
@@ -82,47 +76,61 @@ int main(int argc, char *argv[]){
                     // Process the incoming message
                     if (pkg.messageType == MSG_MOVE) {
                         // Adjust that player's position
-                        players[playerIndex].x += pkg.dx;
-                        players[playerIndex].y += pkg.dy;
+                        aServer->players[playerIndex].x += pkg.dx;
+                        aServer->players[playerIndex].y += pkg.dy;
 
                         // Just clamp to screen boundaries
-                        if (players[playerIndex].x < 0) players[playerIndex].x = 0;
-                        if (players[playerIndex].x > SCREEN_WIDTH) players[playerIndex].x = SCREEN_WIDTH;
-                        if (players[playerIndex].y < 0) players[playerIndex].y = 0;
-                        if (players[playerIndex].y > SCREEN_HEIGHT) players[playerIndex].y = SCREEN_HEIGHT;
+                        if (aServer->players[playerIndex].x < 0) aServer->players[playerIndex].x = 0;
+                        if (aServer->players[playerIndex].x > SCREEN_WIDTH) aServer->players[playerIndex].x = SCREEN_WIDTH;
+                        if (aServer->players[playerIndex].y < 0) aServer->players[playerIndex].y = 0;
+                        if (aServer->players[playerIndex].y > SCREEN_HEIGHT) aServer->players[playerIndex].y = SCREEN_HEIGHT;
                     }
                     else if (pkg.messageType == MSG_DISCONNECT) {
                         // This client is disconnecting
                         printf("Player %d disconnected.\n", playerIndex);
-                        removeClient(playerIndex,clients[playerIndex]);
+                        removeClient(playerIndex,aServer->clients[playerIndex],aServer);
 
-                        if (connectedPlayers == 0) {
+                        if (aServer->connectedPlayers == 0) {
                             printf("All clients disconnected. Shutting down server.\n");
                             running = false;
                             break;
                         }
+                    } else if (pkg.messageType == MSG_DISCOVER) {
+                        // Skicka tillbaka ett svar på DISCOVER-meddelandet
+                        PacketData response;
+                        response.messageType = MSG_DISCOVER_RESPONSE;
+                        response.playerID = 0;  // Du kan använda ett speciellt värde eller t.ex. server-ID
+                        response.dx = 0;
+                        response.dy = 0;
+                        response.health = 0;
+                        memcpy(aServer->sendPacket->data, &response, sizeof(PacketData));
+                        aServer->sendPacket->len = sizeof(PacketData);
+                        aServer->sendPacket->address = aServer->recvPacket->address;  // svara till avsändaren
+                        SDLNet_UDP_Send(aServer->serverSocket, -1, aServer->sendPacket);
+                        printf("DISCOVER-meddelande mottaget, svar skickat.\n");
                     }
                 }
             }
         }
 
         // Broadcast updated positions to all clients
-        if (connectedPlayers > 0) {
-            broadcastPlayers(serverSocket, sendPacket);
+        if (aServer->connectedPlayers > 0) {
+            broadcastPlayers(aServer->serverSocket, aServer->sendPacket,aServer);
         }
 
         // Minimal delay
         SDL_Delay(16);
 
-        if (!running && connectedPlayers == 0) {
+        if (!running && aServer->connectedPlayers == 0) {
             // break out of outer loop
             break;
         }
     }
 
-    SDLNet_FreePacket(recvPacket);
-    SDLNet_FreePacket(sendPacket);
-    SDLNet_UDP_Close(serverSocket);
+    SDLNet_FreePacket(aServer->recvPacket);
+    SDLNet_FreePacket(aServer->sendPacket);
+    SDLNet_UDP_Close(aServer->serverSocket);
+    free(aServer);
     SDLNet_Quit();
     SDL_Quit();
     return 0;
@@ -143,9 +151,10 @@ bool initForServer(){
 
 // Helper: find which player ID corresponds to an IP/port
 // Return -1 if not found
-int findClient(IPaddress addr){
-    for (int i = 0; i < connectedPlayers; i++) {
-        if (clients[i].host == addr.host && clients[i].port == addr.port) {
+int findClient(IPaddress addr, Server aServer){
+    for (int i = 0; i < aServer->connectedPlayers; i++) {
+        if (aServer->clients[i].host == addr.host && 
+            aServer->clients[i].port == addr.port) {
             return i;
         }
     }
@@ -153,18 +162,18 @@ int findClient(IPaddress addr){
 }
 
 // Remove client by index
-void removeClient(int index, IPaddress addr){
+void removeClient(int index, IPaddress addr, Server aServer){
     printf("Removing client at index %d\nIP: %d\n", index,(int)addr.host);
     // Shift everything down from the end
-    for (int i = index; i < connectedPlayers - 1; i++) {
-        clients[i] = clients[i + 1];
-        players[i] = players[i + 1]; // Also shift position
+    for (int i = index; i < aServer->connectedPlayers - 1; i++) {
+        aServer->clients[i] = aServer->clients[i + 1];
+        aServer->players[i] = aServer->players[i + 1]; // Also shift position
     }
-    connectedPlayers--;
+    aServer->connectedPlayers--;
 }
 
 // Broadcast all players' positions to each client
-void broadcastPlayers(UDPsocket sock, UDPpacket *packet){
+void broadcastPlayers(UDPsocket sock, UDPpacket *packet,Server aServer){
     // We’ll send the entire players[] array in one go
     // or we can send multiple messages, but let's do one shot.
     // We'll just do: 2 * int for each player: x, y
@@ -178,14 +187,14 @@ void broadcastPlayers(UDPsocket sock, UDPpacket *packet){
     int offset = 0;
 
     // Copy connectedPlayers (so client knows how many are valid)
-    memcpy(buffer + offset, &connectedPlayers, sizeof(int));
+    memcpy(buffer + offset, &aServer->connectedPlayers, sizeof(int));
     offset += sizeof(int);
 
     // Now copy positions for each player slot in the first connectedPlayers
-    for (int i = 0; i < connectedPlayers; i++) {
-        memcpy(buffer + offset, &players[i].x, sizeof(int));
+    for (int i = 0; i < aServer->connectedPlayers; i++) {
+        memcpy(buffer + offset, &aServer->players[i].x, sizeof(int));
         offset += sizeof(int);
-        memcpy(buffer + offset, &players[i].y, sizeof(int));
+        memcpy(buffer + offset, &aServer->players[i].y, sizeof(int));
         offset += sizeof(int);
     }
 
@@ -194,8 +203,32 @@ void broadcastPlayers(UDPsocket sock, UDPpacket *packet){
     packet->len = offset;
 
     // Send to each connected client
-    for (int i = 0; i < connectedPlayers; i++) {
-        packet->address = clients[i];
+    for (int i = 0; i < aServer->connectedPlayers; i++) {
+        packet->address = aServer->clients[i];
         SDLNet_UDP_Send(sock, -1, packet);
     }
+}
+
+Server serverConstructer(){
+    Server aServer = malloc(sizeof(struct server));
+    aServer->connectedPlayers = 0;
+    // Open server UDP socket
+    aServer->serverSocket = SDLNet_UDP_Open(PORT);
+    if(!aServer->serverSocket){
+        printf("Failde to open UDP socket on port %d\n",PORT);
+        return NULL;
+    }
+    // Packets for sending/receiving
+    aServer->recvPacket = SDLNet_AllocPacket(512);
+    aServer->sendPacket = SDLNet_AllocPacket(512);
+    if (!aServer->sendPacket || !aServer->recvPacket) {
+        printf("Failed to allocate packets\n");
+        return NULL;
+    }
+        // Initialize player positions
+    for (int i = 0; i < MAX_PLAYERS; i++) {
+        aServer->players[i].x = 100 + i * 50;
+        aServer->players[i].y = 100 + i * 50;
+    }
+    return aServer;
 }
