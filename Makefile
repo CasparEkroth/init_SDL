@@ -48,8 +48,8 @@ all: $(SERVER_TARGET) $(CLIENT_TARGET)
 $(SERVER_TARGET): $(NETDIR)/server.c
 	$(CC) $(CFLAGS) $(NETDIR)/server.c -o $(SERVER_TARGET) $(LDFLAGS)
 
-$(CLIENT_TARGET): $(NETDIR)/client.c
-	$(CC) $(CFLAGS) $(NETDIR)/client.c -o $(CLIENT_TARGET) $(LDFLAGS)
+$(CLIENT_TARGET): $(NETDIR)/client.c $(NETDIR)/shared.c 
+	$(CC) $(CFLAGS) $(NETDIR)/client.c $(NETDIR)/shared.c -o $(CLIENT_TARGET) $(LDFLAGS)
 
 clean:
 	$(REMOV) *.o $(SERVER_TARGET) $(CLIENT_TARGET)

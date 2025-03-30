@@ -41,11 +41,18 @@ void closeSDLElement(SDL_Renderer *pRen,SDL_Window *pWin);
 void SEND(Client aClient,MessageType msg,int id,int one,int two,int three);
 bool pingServerDirectly(Client aClient);
 
-void open_console();
 
 int main(int argc, char *argv[]) {
     (void)argc; (void)argv;
-    open_console();
+    #ifdef _WIN32
+        open_console();
+    #endif 
+    char* ip = get_local_broadcast();
+    if(ip){
+        printf("Local IP %s\n",ip);
+    }else{
+        printf("clude not get the ip\n");
+    }
     SDL_Window *window = NULL;
     SDL_Renderer *renderer = NULL;
     if (initSDL(&window, &renderer) == 1) {
@@ -166,7 +173,7 @@ int main(int argc, char *argv[]) {
 
 bool broadcastServer(Client aClient){
     IPaddress broadcastAddr;
-    if (SDLNet_ResolveHost(&broadcastAddr,SERVER_BRODCAST_LOCAL,PORT) < 0) {
+    if (SDLNet_ResolveHost(&broadcastAddr,get_local_broadcast(),PORT) < 0) {
         printf("SDLNet_ResolveHost failed: %s\n", SDLNet_GetError());
         return false;
     }
@@ -326,10 +333,4 @@ void closeSDLElement(SDL_Renderer *pRen,SDL_Window *pWin){
     SDL_DestroyWindow(pWin);
     SDLNet_Quit();
     SDL_Quit();
-}
-
-void open_console(){
-    AllocConsole();
-    freopen("CONOUT$", "w", stdout);
-    freopen("CONOUT$", "w", stderr);
 }

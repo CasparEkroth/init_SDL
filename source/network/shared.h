@@ -4,7 +4,24 @@
 
 #include <SDL.h>
 #include <SDL_net.h>
-#include <windows.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdbool.h>
+
+#ifdef _WIN32
+    #include <windows.h>
+    #include <ws2tcpip.h>
+    #pragma comment(lib, "ws2_32.lib")
+#elif __APPLE__
+    #include <unistd.h>
+    #include <sys/socket.h>
+    #include <netdb.h>
+    #include <ifaddrs.h>
+    #include <net/if.h>
+    #include <arpa/inet.h>
+    #include <arpa/inet.h>
+#endif
 
 #define MAX_PLAYERS 4
 #define PORT 1234
@@ -38,9 +55,26 @@ typedef struct server *Server;
 int initSDL(SDL_Window **pWindow,SDL_Renderer **pRenderer);
 void closeSDLElement(SDL_Renderer *pRen,SDL_Window *pWin);
 
-Client initNet();   //constructer of client struct
+//constructer of client struct
+Client initNet();   
 // simplefide send funtion
 void SEND(Client aClient,MessageType msg,int id,int one,int two,int three);
+
 bool broadcastServer(Client aClient);
+
+
+//returns your local ip
+char* get_local_ip();
+
+//returns your local brodcast ip
+char* get_local_broadcast();
+
+
+//win only
+#if _WIN32
+    void open_console();
+#endif
+
+
 
 #endif
