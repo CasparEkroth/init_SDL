@@ -30,7 +30,7 @@ else ifeq ($(OS), Windows_NT)
     INCLUDE = C:/msys64/mingw64/include/SDL2
     CFLAGS = -g -Wall -Wextra -I$(INCLUDE)
     LDFLAGS = -lmingw32 -lSDL2main -lSDL2 -lSDL2_image -lSDL2_ttf \
-              -lSDL2_mixer -lSDL2_net -mwindows
+              -lSDL2_mixer -lSDL2_net -mwindows -lws2_32
     REMOV = del /f
     SERVER_TARGET =server.exe
     CLIENT_TARGET =client.exe
@@ -46,7 +46,8 @@ NETDIR = source/network
 all: $(SERVER_TARGET) $(CLIENT_TARGET)
 
 $(SERVER_TARGET): $(NETDIR)/server.c
-	$(CC) $(CFLAGS) $(NETDIR)/server.c -o $(SERVER_TARGET) $(LDFLAGS)
+	$(CC) $(CFLAGS) $(NETDIR)/server.c $(NETDIR)/shared.c -o $(SERVER_TARGET) $(LDFLAGS)
+
 
 $(CLIENT_TARGET): $(NETDIR)/client.c $(NETDIR)/shared.c 
 	$(CC) $(CFLAGS) $(NETDIR)/client.c $(NETDIR)/shared.c -o $(CLIENT_TARGET) $(LDFLAGS)
@@ -73,12 +74,3 @@ endif
 
 # initSDL.o: $(SRCDIR)/initSDL.c
 # 	$(CC) $(CFLAGS) $(SRCDIR)/initSDL.c -o initSDL.o
-
-# toolSDL.o: $(SRCDIR)/toolSDL.c
-# 	$(CC) $(CFLAGS) $(SRCDIR)/toolSDL.c -o toolSDL.o
-
-# server.o: source/network/server.c
-# 	$(CC) $(CFLAGS) source/server.c -o server.o
-
-# client.o: source/network/client.c
-# 	$(CC) $(CFLAGS) source/client.c -o client.o

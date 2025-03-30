@@ -1,4 +1,5 @@
 #include "shared.h"
+
 #if _WIN32
     void open_console(){
         AllocConsole();
