@@ -11,7 +11,7 @@
 #define SERVER_BRODCAST "255.255.255.255"
 #define SERVER_IP_EDURUM "130.229.140.39"
 #define SERVER_IP_EDURUM2 "130.229.134.176"
-
+#define SERVER_BRODCAST_LOCAL "10.0.0.255"
 
 // om du vill köra endbart på din enhet använd
 // "127.0.0.1" - kör med dig själv
@@ -160,7 +160,7 @@ int main(int argc, char *argv[]) {
 
 bool broadcastServer(Client aClient){
     IPaddress broadcastAddr;
-    if (SDLNet_ResolveHost(&broadcastAddr,SERVER_BRODCAST,PORT) < 0) {
+    if (SDLNet_ResolveHost(&broadcastAddr,SERVER_BRODCAST_LOCAL,PORT) < 0) {
         printf("SDLNet_ResolveHost failed: %s\n", SDLNet_GetError());
         return false;
     }
@@ -179,10 +179,11 @@ bool broadcastServer(Client aClient){
     while (SDL_GetTicks() - startTime < 3000 ){//3 sec
         if(SDLNet_UDP_Recv(aClient->udp_socket,aClient->in_packet)){
             PacketData response;
-            memcpy(&response, aClient->in_packet, sizeof(PacketData));
+            memcpy(&response, aClient->in_packet->data, sizeof(PacketData));
             if(response.messageType == MSG_DISCOVER_RESPONSE){
                 serverFound = true;
                 aClient->serverAddr = aClient->in_packet->address;  // Uppdatera serverns adress
+                printf("client resevde MSG_DISCOVER_RESPONSE\n");
                 break;
             }
         }

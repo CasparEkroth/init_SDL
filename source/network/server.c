@@ -33,6 +33,8 @@ int findClient(IPaddress addr, Server aServer);
 
 
 bool initForServer();
+void destroyServer(Server aServer);
+
 
 Server serverConstructer();
 
@@ -44,26 +46,27 @@ int main(int argc, char *argv[]){
     Server aServer;
     aServer = serverConstructer();
     if(aServer == NULL){
-        if(aServer->serverSocket) SDLNet_UDP_Close(aServer->serverSocket);
+        destroyServer(aServer);
         SDLNet_Quit();
         SDL_Quit();
         return 1;
-    
     }else printf("UDP server started on port %d\n", PORT);
 
     bool running = true;
     while (running) {
         // Check for packets
-        while (SDLNet_UDP_Recv(aServer->serverSocket, aServer->recvPacket)) {
+        while (SDLNet_UDP_Recv(aServer->serverSocket, aServer->recvPacket)){
+                printf("Received packet: len=%d, from host=%u, port=%u\n",
+                        aServer->recvPacket->len,
+                        aServer->recvPacket->address.host,
+                        aServer->recvPacket->address.port);
             // We expect a PacketData or a smaller/larger message
-            if (aServer->recvPacket->len == sizeof(PacketData)) {
+            if (aServer->recvPacket->len == sizeof(PacketData)){
                 PacketData pkg;
                 memcpy(&pkg, aServer->recvPacket->data, sizeof(PacketData));
-
                 // Find or add the sender
                 IPaddress sender = aServer->recvPacket->address;
                 int playerIndex = findClient(sender,aServer);
-
                 // If unknown, add if we have capacity
                 if (playerIndex == -1 && aServer->connectedPlayers < MAX_PLAYERS) {
                     playerIndex = aServer->connectedPlayers;
@@ -78,7 +81,6 @@ int main(int argc, char *argv[]){
                         // Adjust that player's position
                         aServer->players[playerIndex].x += pkg.dx;
                         aServer->players[playerIndex].y += pkg.dy;
-
                         // Just clamp to screen boundaries
                         if (aServer->players[playerIndex].x < 0) aServer->players[playerIndex].x = 0;
                         if (aServer->players[playerIndex].x > SCREEN_WIDTH) aServer->players[playerIndex].x = SCREEN_WIDTH;
@@ -89,48 +91,41 @@ int main(int argc, char *argv[]){
                         // This client is disconnecting
                         printf("Player %d disconnected.\n", playerIndex);
                         removeClient(playerIndex,aServer->clients[playerIndex],aServer);
-
                         if (aServer->connectedPlayers == 0) {
                             printf("All clients disconnected. Shutting down server.\n");
                             running = false;
                             break;
                         }
-                    } else if (pkg.messageType == MSG_DISCOVER) {
-                        // Skicka tillbaka ett svar på DISCOVER-meddelandet
-                        PacketData response;
-                        response.messageType = MSG_DISCOVER_RESPONSE;
-                        response.playerID = 0;  // Du kan använda ett speciellt värde eller t.ex. server-ID
-                        response.dx = 0;
-                        response.dy = 0;
-                        response.health = 0;
-                        memcpy(aServer->sendPacket->data, &response, sizeof(PacketData));
-                        aServer->sendPacket->len = sizeof(PacketData);
-                        aServer->sendPacket->address = aServer->recvPacket->address;  // svara till avsändaren
-                        SDLNet_UDP_Send(aServer->serverSocket, -1, aServer->sendPacket);
-                        printf("DISCOVER-meddelande mottaget, svar skickat.\n");
-                    }
+                    } 
+                }
+                if (pkg.messageType == MSG_DISCOVER) {
+                    // Skicka tillbaka ett svar på DISCOVER-meddelandet
+                    PacketData response;
+                    response.messageType = MSG_DISCOVER_RESPONSE;
+                    response.playerID = 0;  // Du kan använda ett speciellt värde eller t.ex. server-ID
+                    response.dx = 0;
+                    response.dy = 0;
+                    response.health = 0;
+                    memcpy(aServer->sendPacket->data, &response, sizeof(PacketData));
+                    aServer->sendPacket->len = sizeof(PacketData);
+                    aServer->sendPacket->address = aServer->recvPacket->address;  // svara till avsändaren
+                    SDLNet_UDP_Send(aServer->serverSocket, -1, aServer->sendPacket);
+                    printf("DISCOVER-meddelande mottaget, svar skickat.\n");
                 }
             }
         }
-
         // Broadcast updated positions to all clients
         if (aServer->connectedPlayers > 0) {
             broadcastPlayers(aServer->serverSocket, aServer->sendPacket,aServer);
         }
-
         // Minimal delay
         SDL_Delay(16);
-
         if (!running && aServer->connectedPlayers == 0) {
             // break out of outer loop
             break;
         }
     }
-
-    SDLNet_FreePacket(aServer->recvPacket);
-    SDLNet_FreePacket(aServer->sendPacket);
-    SDLNet_UDP_Close(aServer->serverSocket);
-    free(aServer);
+    destroyServer(aServer);
     SDLNet_Quit();
     SDL_Quit();
     return 0;
@@ -147,6 +142,13 @@ bool initForServer(){
         return false;
     }
     return true;
+}
+
+void destroyServer(Server aServer){
+    if(aServer->sendPacket) SDLNet_FreePacket(aServer->recvPacket);
+    if(aServer->recvPacket) SDLNet_FreePacket(aServer->sendPacket);
+    if(aServer->serverSocket) SDLNet_UDP_Close(aServer->serverSocket);
+    free(aServer);
 }
 
 // Helper: find which player ID corresponds to an IP/port
@@ -211,6 +213,10 @@ void broadcastPlayers(UDPsocket sock, UDPpacket *packet,Server aServer){
 
 Server serverConstructer(){
     Server aServer = malloc(sizeof(struct server));
+    if(aServer == NULL) {
+        fprintf(stderr, "Misslyckades att allokera minne för servern.\n");
+        return NULL;
+    }
     aServer->connectedPlayers = 0;
     // Open server UDP socket
     aServer->serverSocket = SDLNet_UDP_Open(PORT);
