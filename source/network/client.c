@@ -8,6 +8,7 @@
 
 #include "shared.h"
 #define SERVER_IP "127.0.0.1"
+#define SERVER_IP_EKERO "10.0.0.8"
 #define SERVER_BRODCAST "255.255.255.255"
 #define SERVER_IP_EDURUM "130.229.140.39"
 #define SERVER_IP_EDURUM2 "130.229.134.176"
@@ -38,6 +39,8 @@ int initSDL(SDL_Window **pWindow,SDL_Renderer **pRenderer);
 Client initNet();
 void closeSDLElement(SDL_Renderer *pRen,SDL_Window *pWin);
 void SEND(Client aClient,MessageType msg,int id,int one,int two,int three);
+bool pingServerDirectly(Client aClient);
+
 
 int main(int argc, char *argv[]) {
     (void)argc; (void)argv;
@@ -61,14 +64,15 @@ int main(int argc, char *argv[]) {
         closeSDLElement(renderer,window);
         return 1;
     }*/
-    if(!broadcastServer(theClient)){
-        if (SDLNet_ResolveHost(&theClient->serverAddr,SERVER_IP, PORT) < 0) {
-            printf("SDLNet_ResolveHost failed: %s\n", SDLNet_GetError());
-            closeSDLElement(renderer,window);
-            return 1;
+    if (!pingServerDirectly(theClient)){
+        if(!broadcastServer(theClient)){
+            if (SDLNet_ResolveHost(&theClient->serverAddr,SERVER_IP_EKERO, PORT) < 0) {
+                printf("SDLNet_ResolveHost failed: %s\n", SDLNet_GetError());
+                closeSDLElement(renderer,window);
+                return 1;
+            }
         }
     }
-
     int numPlayers = 0; 
     int playerPosX[MAX_PLAYERS]={0};
     int playerPosY[MAX_PLAYERS]={0};
@@ -160,7 +164,7 @@ int main(int argc, char *argv[]) {
 
 bool broadcastServer(Client aClient){
     IPaddress broadcastAddr;
-    if (SDLNet_ResolveHost(&broadcastAddr,SERVER_BRODCAST_LOCAL,PORT) < 0) {
+    if (SDLNet_ResolveHost(&broadcastAddr,SERVER_BRODCAST,PORT) < 0) {
         printf("SDLNet_ResolveHost failed: %s\n", SDLNet_GetError());
         return false;
     }
@@ -171,12 +175,11 @@ bool broadcastServer(Client aClient){
     memcpy(aClient->out_packet->data, &discoverPkg, sizeof(discoverPkg));
     aClient->out_packet->len = sizeof(PacketData);
     aClient->out_packet->address = broadcastAddr;
-
     SDLNet_UDP_Send(aClient->udp_socket,-1,aClient->out_packet);
     // wait for respons
     Uint32 startTime = SDL_GetTicks();
     bool serverFound = false;
-    while (SDL_GetTicks() - startTime < 3000 ){//3 sec
+    while (SDL_GetTicks() - startTime < 2000 ){//2 sec
         if(SDLNet_UDP_Recv(aClient->udp_socket,aClient->in_packet)){
             PacketData response;
             memcpy(&response, aClient->in_packet->data, sizeof(PacketData));
@@ -191,9 +194,11 @@ bool broadcastServer(Client aClient){
     }
     if(!serverFound){
         #ifdef _WIN32
+            //for OS to get acses to termial
             #include <direct.h>
             system("start cmd /k \"cd /d %CD% && make run_server\"");
         #elif __APPLE__
+            // for OS to get acses to termial
             #include <unistd.h>
             #include <stdio.h>
             #include <stdlib.h>
@@ -216,6 +221,34 @@ bool broadcastServer(Client aClient){
         return false;
     }
     return true;
+}
+
+bool pingServerDirectly(Client aClient){
+    // Try direct connection using SERVER_IP.
+    if (SDLNet_ResolveHost(&aClient->serverAddr, SERVER_IP, PORT) < 0) {
+        printf("SDLNet_ResolveHost failed: %s\n", SDLNet_GetError());
+        return false;
+    }
+    PacketData discoverPkg = { .messageType = MSG_DISCOVER, .playerID = 0 };
+    memcpy(aClient->out_packet->data, &discoverPkg, sizeof(discoverPkg));
+    aClient->out_packet->len = sizeof(PacketData);
+    aClient->out_packet->address = aClient->serverAddr;
+    SDLNet_UDP_Send(aClient->udp_socket, -1, aClient->out_packet);
+    
+    Uint32 startTime = SDL_GetTicks();
+    while (SDL_GetTicks() - startTime < 2000) { // 2 second timeout
+        if (SDLNet_UDP_Recv(aClient->udp_socket, aClient->in_packet)) {
+            PacketData response;
+            memcpy(&response, aClient->in_packet->data, sizeof(PacketData));
+            if (response.messageType == MSG_DISCOVER_RESPONSE) {
+                aClient->serverAddr = aClient->in_packet->address;
+                printf("Direct ping: received MSG_DISCOVER_RESPONSE\n");
+                return true;
+            }
+        }
+        SDL_Delay(10);
+    }
+    return false;
 }
 
 

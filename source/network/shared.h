@@ -5,6 +5,7 @@
 #include <SDL.h>
 #include <SDL_net.h>
 
+
 #define MAX_PLAYERS 4
 #define PORT 1234
 #define SCREEN_WIDTH 800

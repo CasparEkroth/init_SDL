@@ -64,8 +64,24 @@ int main(int argc, char *argv[]){
             if (aServer->recvPacket->len == sizeof(PacketData)){
                 PacketData pkg;
                 memcpy(&pkg, aServer->recvPacket->data, sizeof(PacketData));
-                // Find or add the sender
                 IPaddress sender = aServer->recvPacket->address;
+                // Find or add the sender
+                if (pkg.messageType == MSG_DISCOVER) {
+                    // Skicka tillbaka ett svar på DISCOVER-meddelandet
+                    PacketData response;
+                    response.messageType = MSG_DISCOVER_RESPONSE;
+                    response.playerID = 0;  // Du kan använda ett speciellt värde eller t.ex. server-ID
+                    response.dx = 0;
+                    response.dy = 0;
+                    response.health = 0;
+                    memcpy(aServer->sendPacket->data, &response, sizeof(PacketData));
+                    aServer->sendPacket->len = sizeof(PacketData);
+                    aServer->sendPacket->address = sender;
+                    aServer->sendPacket->address = aServer->recvPacket->address;  // svara till avsändaren
+                    SDLNet_UDP_Send(aServer->serverSocket, -1, aServer->sendPacket);
+                    printf("DISCOVER-meddelande mottaget, svar skickat.\n");
+                    continue;
+                }
                 int playerIndex = findClient(sender,aServer);
                 // If unknown, add if we have capacity
                 if (playerIndex == -1 && aServer->connectedPlayers < MAX_PLAYERS) {
@@ -97,20 +113,6 @@ int main(int argc, char *argv[]){
                             break;
                         }
                     } 
-                }
-                if (pkg.messageType == MSG_DISCOVER) {
-                    // Skicka tillbaka ett svar på DISCOVER-meddelandet
-                    PacketData response;
-                    response.messageType = MSG_DISCOVER_RESPONSE;
-                    response.playerID = 0;  // Du kan använda ett speciellt värde eller t.ex. server-ID
-                    response.dx = 0;
-                    response.dy = 0;
-                    response.health = 0;
-                    memcpy(aServer->sendPacket->data, &response, sizeof(PacketData));
-                    aServer->sendPacket->len = sizeof(PacketData);
-                    aServer->sendPacket->address = aServer->recvPacket->address;  // svara till avsändaren
-                    SDLNet_UDP_Send(aServer->serverSocket, -1, aServer->sendPacket);
-                    printf("DISCOVER-meddelande mottaget, svar skickat.\n");
                 }
             }
         }
@@ -154,7 +156,7 @@ void destroyServer(Server aServer){
 // Helper: find which player ID corresponds to an IP/port
 // Return -1 if not found
 int findClient(IPaddress addr, Server aServer){
-    for (int i = 0; i < aServer->connectedPlayers; i++) {
+    for (int i = 0; i < aServer->connectedPlayers; i++){
         if (aServer->clients[i].host == addr.host && 
             aServer->clients[i].port == addr.port) {
             return i;

@@ -21,7 +21,8 @@ bool pointInRect(SDL_Rect A, SDL_Point P){
     return false;
 }
 
-void trimWhitespace(char *str) {// Ta bort extra whitespace
+// Ta bort extra whitespace
+void trimWhitespace(char *str) {
     char *end;
     while (isspace((unsigned char)*str)) str++;
     if (*str == 0) return;
