@@ -56,18 +56,18 @@ int main(int argc, char *argv[]) {
     if(theClient == NULL){
         closeSDLElement(renderer,window);
     }  // Resolve the server address (change IP if needed)
-    if (SDLNet_ResolveHost(&theClient->serverAddr,SERVER_IP, PORT) < 0) {
+    /*if (SDLNet_ResolveHost(&theClient->serverAddr,SERVER_IP, PORT) < 0) {
         printf("SDLNet_ResolveHost failed: %s\n", SDLNet_GetError());
         closeSDLElement(renderer,window);
         return 1;
-    }
-    /*if(!broadcastServer(theClient)){
+    }*/
+    if(!broadcastServer(theClient)){
         if (SDLNet_ResolveHost(&theClient->serverAddr,SERVER_IP, PORT) < 0) {
             printf("SDLNet_ResolveHost failed: %s\n", SDLNet_GetError());
             closeSDLElement(renderer,window);
             return 1;
         }
-    }*/
+    }
 
     int numPlayers = 0; 
     int playerPosX[MAX_PLAYERS]={0};
@@ -168,7 +168,7 @@ bool broadcastServer(Client aClient){
     discoverPkg.messageType = MSG_DISCOVER;
     discoverPkg.playerID = 0;
 
-    memcpy(aClient->out_packet, &discoverPkg, sizeof(discoverPkg));
+    memcpy(aClient->out_packet->data, &discoverPkg, sizeof(discoverPkg));
     aClient->out_packet->len = sizeof(PacketData);
     aClient->out_packet->address = broadcastAddr;
 
@@ -182,13 +182,35 @@ bool broadcastServer(Client aClient){
             memcpy(&response, aClient->in_packet, sizeof(PacketData));
             if(response.messageType == MSG_DISCOVER_RESPONSE){
                 serverFound = true;
+                aClient->serverAddr = aClient->in_packet->address;  // Uppdatera serverns adress
                 break;
             }
         }
         SDL_Delay(10);
     }
     if(!serverFound){
-        system("make run_server");
+        #ifdef _WIN32
+            #include <direct.h>
+            system("start cmd /k \"cd /d %CD% && make run_server\"");
+        #elif __APPLE__
+            #include <unistd.h>
+            #include <stdio.h>
+            #include <stdlib.h>
+            #include <limits.h>
+            #include "TargetConditionals.h"
+            #if TARGET_OS_MAC
+                char cwd[PATH_MAX];
+                if(getcwd(cwd, sizeof(cwd)) != NULL){ // Hämta aktuell katalog
+                    char command[2048];
+                    snprintf(command, sizeof(command),
+                        "osascript -e 'tell application \"Terminal\" to do script \"cd %s && make run_server\"'",
+                        cwd);
+                    system(command);
+                } else {
+                    perror("getcwd() error");
+                }
+            #endif
+        #endif
         printf("NO Server fund\n");
         return false;
     }

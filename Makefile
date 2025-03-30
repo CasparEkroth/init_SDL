@@ -22,7 +22,8 @@ ifeq ($(OS), Darwin)
     SERVER_TARGET = server
     CLIENT_TARGET = client
     RUN = ./
-    PREFORM = MallocNanoZone=0 
+    PREFORM = 
+#MallocNanoZone=0 
 else ifeq ($(OS), Windows_NT)
 # --- Windows (MinGW/MSYS) Settings ---
     CC = gcc
