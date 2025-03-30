@@ -34,12 +34,14 @@ int findClient(IPaddress addr, Server aServer);
 
 bool initForServer();
 void destroyServer(Server aServer);
+void open_console();
 
 
 Server serverConstructer();
 
 int main(int argc, char *argv[]){
     (void)argc; (void)argv; // Silence unused warnings if you like
+    open_console();
     if(!initForServer()){
         return 1;
     }
@@ -239,4 +241,10 @@ Server serverConstructer(){
         aServer->players[i].y = 100 + i * 50;
     }
     return aServer;
+}
+
+void open_console(){
+    AllocConsole();
+    freopen("CONOUT$", "w", stdout);
+    freopen("CONOUT$", "w", stderr);
 }

@@ -4,7 +4,7 @@
 
 #include <SDL.h>
 #include <SDL_net.h>
-
+#include <windows.h>
 
 #define MAX_PLAYERS 4
 #define PORT 1234
