@@ -142,17 +142,21 @@ int main(int argc, char *argv[]) {
                 }
             }
         }
-
-        // Render
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
-        // Draw each player
         for (int i = 0; i < numPlayers; i++) {
-            // Just alternate color for fun
-            if (i % 2 == 0) {
-                SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-            } else {
-                SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
+            switch (i)
+            {
+            case 0:SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+                break;
+            case 1:SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+                break;
+            case 2:SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
+                break;
+            case 3:SDL_SetRenderDrawColor(renderer, 0, 255, 255, 255);
+                break;
+            default:
+                break;
             }
             SDL_Rect rect = { playerPosX[i], playerPosY[i], RECT_SIZE, RECT_SIZE };
             SDL_RenderFillRect(renderer, &rect);
@@ -232,8 +236,8 @@ bool broadcastServer(Client aClient){
     return true;
 }
 
+// Try direct connection using SERVER_IP.
 bool pingServerDirectly(Client aClient){
-    // Try direct connection using SERVER_IP.
     if (SDLNet_ResolveHost(&aClient->serverAddr, SERVER_IP, PORT) < 0) {
         printf("SDLNet_ResolveHost failed: %s\n", SDLNet_GetError());
         return false;
@@ -259,7 +263,6 @@ bool pingServerDirectly(Client aClient){
     }
     return false;
 }
-
 
 void SEND(Client aClient,MessageType msg,int id,int one,int two,int three){
         PacketData pkg;

@@ -1,6 +1,7 @@
 #include "shared.h"
 
 #if _WIN32
+    //for geting ptint statmeins while on PC
     void open_console(){
         AllocConsole();
         freopen("CONOUT$", "w", stdout);
@@ -47,7 +48,7 @@ char* get_local_ip() {
         return NULL;
     }
 
-    for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+    for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next){
         if (ifa->ifa_addr == NULL) continue;
         if (ifa->ifa_addr->sa_family != AF_INET) continue;
         if (ifa->ifa_flags & IFF_LOOPBACK) continue;

@@ -8,7 +8,11 @@
 
 #include "shared.h"
 
-// Each player data: position on screen
+//vad är viktiong för en server//
+//först polla efter packets
+//kolla storlek, copiera över paketet
+//samt hålla koll på addresern
+//och sköta lite logik om de behövs
 typedef struct {
     int x;
     int y;
@@ -23,23 +27,17 @@ struct server{
     UDPpacket *sendPacket;
 };
 
-//static PlayerState players[MAX_PLAYERS];
-//static IPaddress clients[MAX_PLAYERS];
-//static int connectedPlayers = 0;
-
 void broadcastPlayers(UDPsocket sock, UDPpacket *packet,Server aServer);
 void removeClient(int index, IPaddress addr, Server aServer);
 int findClient(IPaddress addr, Server aServer);
 
-
 bool initForServer();
 void destroyServer(Server aServer);
-
 
 Server serverConstructer();
 
 int main(int argc, char *argv[]){
-    (void)argc; (void)argv; // Silence unused warnings if you like
+    (void)argc; (void)argv; 
     #ifdef _WIN32
         open_console();
     #endif 
@@ -123,10 +121,8 @@ int main(int argc, char *argv[]){
         if (aServer->connectedPlayers > 0) {
             broadcastPlayers(aServer->serverSocket, aServer->sendPacket,aServer);
         }
-        // Minimal delay
         SDL_Delay(16);
         if (!running && aServer->connectedPlayers == 0) {
-            // break out of outer loop
             break;
         }
     }
@@ -182,7 +178,7 @@ void removeClient(int index, IPaddress addr, Server aServer){
 // Broadcast all players' positions to each client
 void broadcastPlayers(UDPsocket sock, UDPpacket *packet,Server aServer){
     // We’ll send the entire players[] array in one go
-    // or we can send multiple messages, but let's do one shot.
+    // or we can send multiple messages
     // We'll just do: 2 * int for each player: x, y
     // But let's do it very simply with a second buffer or struct.
 
