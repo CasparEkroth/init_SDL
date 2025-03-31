@@ -13,6 +13,9 @@
 //kolla storlek, copiera över paketet
 //samt hålla koll på addresern
 //och sköta lite logik om de behövs
+
+// vi andever deras funktioner för att tolka datan detta
+// detta komemr att bli lättare och mer portabelt
 typedef struct {
     int x;
     int y;
@@ -63,10 +66,21 @@ int main(int argc, char *argv[]){
                         aServer->recvPacket->address.port);
             // We expect a PacketData or a smaller/larger message
             if (aServer->recvPacket->len == sizeof(PacketData)){
+                /**Uint8 *data = aServer->recvPacket->data;
+                PacketData pkg;
+                
+                pkg.messageType = (int)SDLNet_Read32(data);         // offset 0
+                pkg.playerID    = (int)SDLNet_Read32(data + 4);       // offset 4
+                pkg.dx          = (int)SDLNet_Read32(data + 8);       // offset 8
+                pkg.dy          = (int)SDLNet_Read32(data + 12);      // offset 12
+                pkg.health      = (int)SDLNet_Read32(data + 16);      // offset 16*/
+
                 PacketData pkg;
                 memcpy(&pkg, aServer->recvPacket->data, sizeof(PacketData));
                 IPaddress sender = aServer->recvPacket->address;
                 // Find or add the sender
+
+
                 if (pkg.messageType == MSG_DISCOVER) {
                     // Skicka tillbaka ett svar på DISCOVER-meddelandet
                     PacketData response;

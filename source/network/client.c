@@ -264,6 +264,27 @@ bool pingServerDirectly(Client aClient){
     return false;
 }
 
+/*
+void SEND(Client aClient, MessageType msg, int id, int one, int two, int three) {
+    // Create a buffer for five 32-bit integers (20 bytes)
+    Uint8 buffer[20];
+
+    // Pack each value into the buffer in network byte order
+    SDLNet_Write32((Uint32)msg, buffer);        // offset 0: messageType
+    SDLNet_Write32((Uint32)id, buffer + 4);         // offset 4: playerID
+    SDLNet_Write32((Uint32)one, buffer + 8);        // offset 8: dx (e.g., x position change)
+    SDLNet_Write32((Uint32)two, buffer + 12);       // offset 12: dy (e.g., y position change)
+    SDLNet_Write32((Uint32)three, buffer + 16);     // offset 16: health (or any extra field)
+
+    // Copy the packed data into the outgoing UDP packet
+    memcpy(aClient->out_packet->data, buffer, sizeof(buffer));
+    aClient->out_packet->len = sizeof(buffer);
+    aClient->out_packet->address = aClient->serverAddr;
+
+    SDLNet_UDP_Send(aClient->udp_socket, -1, aClient->out_packet);
+}*/
+
+
 void SEND(Client aClient,MessageType msg,int id,int one,int two,int three){
         PacketData pkg;
         pkg.messageType = msg;
@@ -276,6 +297,7 @@ void SEND(Client aClient,MessageType msg,int id,int one,int two,int three){
     aClient->out_packet->address =  aClient->serverAddr;
     SDLNet_UDP_Send(aClient->udp_socket, -1, aClient->out_packet);
 }
+
 
 Client initNet(){
     Client aClient = malloc(sizeof(struct client));
