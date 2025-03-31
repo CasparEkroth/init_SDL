@@ -16,6 +16,9 @@
 
 // vi andever deras funktioner för att tolka datan detta
 // detta komemr att bli lättare och mer portabelt
+
+//     pkg.messageType = (int)SDLNet_Read32(data);  
+//     för att kolla vilke stat
 typedef struct {
     int x;
     int y;

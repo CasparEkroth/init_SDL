@@ -75,7 +75,7 @@ int main(int argc, char *argv[]) {
     }*/
     if (!pingServerDirectly(theClient)){
         if(!broadcastServer(theClient)){
-            if (SDLNet_ResolveHost(&theClient->serverAddr,SERVER_IP_EKERO, PORT) < 0) {
+            if (SDLNet_ResolveHost(&theClient->serverAddr,get_local_ip(), PORT) < 0) {
                 printf("SDLNet_ResolveHost failed: %s\n", SDLNet_GetError());
                 closeSDLElement(renderer,window);
                 return 1;
@@ -238,7 +238,7 @@ bool broadcastServer(Client aClient){
 
 // Try direct connection using SERVER_IP.
 bool pingServerDirectly(Client aClient){
-    if (SDLNet_ResolveHost(&aClient->serverAddr, SERVER_IP, PORT) < 0) {
+    if (SDLNet_ResolveHost(&aClient->serverAddr, get_local_ip(), PORT) < 0) {
         printf("SDLNet_ResolveHost failed: %s\n", SDLNet_GetError());
         return false;
     }
