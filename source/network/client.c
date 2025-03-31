@@ -7,12 +7,6 @@
 #include <SDL_net.h>
 
 #include "shared.h"
-#define SERVER_IP "127.0.0.1"
-#define SERVER_IP_EKERO "10.0.0.8"
-#define SERVER_BRODCAST "255.255.255.255"
-#define SERVER_IP_EDURUM "130.229.140.39"
-#define SERVER_IP_EDURUM2 "130.229.134.176"
-#define SERVER_BRODCAST_LOCAL "10.0.0.255"
 
 // om du vill köra endbart på din enhet använd
 // "127.0.0.1" - kör med dig själv
